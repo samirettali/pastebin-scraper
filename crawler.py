@@ -90,12 +90,6 @@ def save_result(paste_text, url, paste_id, file, directory):
     timestamp = get_timestamp()
     with open(f'{OUTPUT_DIRECTORY}/{file}', 'a') as matching:
         matching.write(f'{timestamp} - {url}\n')
-    # try:
-        # os.mkdir(directory)
-    # except KeyboardInterrupt:
-        # raise
-    # except:
-        # pass
     timestamp = get_timestamp_as_path()
     paste_id = paste_id.replace('/', '')
     with open(f'{OUTPUT_DIRECTORY}/{directory}/{timestamp}_{paste_id}.txt', 'w') as f:
