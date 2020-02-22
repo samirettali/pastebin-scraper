@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 import json
+import os
+import re
 import requests
 import sqlite3
-import os
 import time
-import re
 from pathlib import Path
 from termcolor import colored
-from sys import argv
 
 regexes = []
 connection = None
@@ -36,13 +35,13 @@ def get_timestamp():
 
 def get_timestamp_as_path():
     timestamp = get_timestamp()
-    timestamp = timestamp.replace('/','_')
-    timestamp = timestamp.replace(':','_')
-    timestamp = timestamp.replace(' ','__')
+    timestamp = timestamp.replace('/', '_')
+    timestamp = timestamp.replace(':', '_')
+    timestamp = timestamp.replace(' ', '__')
     return timestamp
 
 
-def log(message, type='neutral', clear_line = False):
+def log(message, type='neutral', clear_line=False):
     symbol = None
     if type == 'neutral':
         symbol = colored('[*]', 'yellow')
@@ -92,7 +91,8 @@ def save_result(paste_text, url, paste_id, file, directory):
         matching.write(f'{timestamp} - {url}\n')
     timestamp = get_timestamp_as_path()
     paste_id = paste_id.replace('/', '')
-    with open(f'{OUTPUT_DIRECTORY}/{directory}/{timestamp}_{paste_id}.txt', 'w') as f:
+    path = f'{OUTPUT_DIRECTORY}/{directory}/{timestamp}_{paste_id}.txt'
+    with open(path, 'w') as f:
         f.write(paste_text + '\n')
 
 
@@ -125,7 +125,8 @@ def load_regexes():
         category = regexes[i][2]
         directory = f'{OUTPUT_DIRECTORY}/{category}'
         Path(directory).mkdir(parents=True, exist_ok=True)
-    Path(f'{OUTPUT_DIRECTORY}/uncategorized').mkdir(parents=True, exist_ok=True)
+    uncategorized_path = f'{OUTPUT_DIRECTORY}/uncategorized'
+    Path(uncategorized_path).mkdir(parents=True, exist_ok=True)
 
 
 def scrape():
@@ -133,11 +134,10 @@ def scrape():
     global cursor
     global regexes
 
-    SCRAPING_URL = 'https://scrape.pastebin.com/api_scraping.php?limit=250'
-    BIN_URL = 'https://scrape.pastebin.com/api_scrape_item_meta.php?i='
+    SCRAPE_URL = 'https://scrape.pastebin.com/api_scraping.php?limit=250'
 
     while True:
-        response = requests.get(SCRAPING_URL)
+        response = requests.get(SCRAPE_URL)
         data = json.loads(response.text)
         for paste in data:
             key = paste['key']
