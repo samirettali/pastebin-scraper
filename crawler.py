@@ -77,7 +77,7 @@ class PastebinCrawler:
         found = False
         for regex, file, directory in self.regexes:
             if re.match(regex, paste_text, re.IGNORECASE):
-                log('Found a matching paste: %s -> %s' % (key, file), 'positive')
+                self.log('Found a matching paste: %s -> %s' % (key, file), 'positive')
                 self.save_result(paste_text, url, key, file, directory)
                 found = True
         if not found:
@@ -143,7 +143,7 @@ class PastebinCrawler:
             for paste in data:
                 key = paste['key']
                 if self.search_in_db(key):
-                    log(f'Paste {key} already checked', 'negative', True)
+                    self.log(f'Paste {key} already checked', 'negative', True)
                 else:
                     self.insert_in_db(paste['key'])
             time.sleep(60)
