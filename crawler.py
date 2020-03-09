@@ -12,7 +12,7 @@ from pymongo import MongoClient
 
 
 class PastebinCrawler:
-    def __init__(self, ip='127.0.0.1', port='27017'):
+    def __init__(self, ip, port):
         self.db_address = f'mongodb://{ip}:{port}'
 
     def make_request(self, url, convert_json=False, retries=10):
@@ -106,12 +106,12 @@ class PastebinCrawler:
             for future in futures:
                 if future.result():
                     count += 1
-            if count:
-                utils.log(f'Found {count} new pastes', 'positive')
 
-            size = self.get_db_size()
-            utils.log(f'Collection size: {size} MB')
-            utils.log(f'Waiting 60 seconds...')
+            if count:
+                size = self.get_db_size()
+                utils.log(f'{count:3} new pastes, collection size: {size} MB',
+                          'positive')
+
             time.sleep(60)
 
 
