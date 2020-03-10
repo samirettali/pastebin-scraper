@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
+import argparse
 import datetime
 import json
 import os
+import pymongo
 import requests
 import time
-import argparse
 import utils
 from concurrent.futures import ThreadPoolExecutor
 from termcolor import colored
-from pymongo import MongoClient
 
 
 class PastebinCrawler:
@@ -34,7 +34,7 @@ class PastebinCrawler:
 
     def get_db(self):
         try:
-            client = MongoClient(self.db_address)
+            client = pymongo.MongoClient(self.db_address)
             client.server_info()
         except pymongo.errors.ServerSelectionTimeoutError:
             print(f'Could not connect to {self.db_address}')
