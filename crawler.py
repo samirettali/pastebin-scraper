@@ -112,7 +112,7 @@ class PastebinCrawler:
                 utils.log(f'{count:3} new pastes, collection size: {size} MB',
                           'positive')
 
-            time.sleep(60)
+            time.sleep(20)
 
 
 def get_args():
