@@ -1,31 +1,48 @@
 #!/usr/bin/env python3
-import os
 import time
-from termcolor import colored
+import requests
+import pymongo
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
+
 
 def get_timestamp():
     return time.strftime('%d/%m/%y %H:%M:%S')
 
-def log(message, type='neutral', clear_line=False):
-    symbol = None
-    if type == 'neutral':
-        symbol = colored('[*]', 'yellow')
-    elif type == 'negative':
-        symbol = colored('[-]', 'red')
-    elif type == 'positive':
-        symbol = colored('[+]', 'green')
-    elif type == 'warning':
-        symbol = colored('[!]', 'magenta')
-    else:
-        raise Exception('Unknown log message type %s' % (type))
 
-    date = colored(get_timestamp(), 'blue')
+def get_retry_session(
+    retries=3,
+    backoff_factor=0.3,
+    status_forcelist=(500, 502, 503, 504),
+    session=None
+):
+    session = session or requests.Session()
+    retry = Retry(
+        total=retries,
+        read=retries,
+        connect=retries,
+        backoff_factor=backoff_factor,
+        status_forcelist=status_forcelist
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+    return session
 
-    line_ending = '\n'
-    if clear_line:
-        line_ending = '\r'
-        rows, columns = os.popen('stty size', 'r').read().split()
-        print(' '*int(columns), end='\r')
 
-    print('%s %s %s' % (date, symbol, message), end=line_ending)
+def get_db(db_address, db_name):
+    try:
+        client = pymongo.MongoClient(db_address)
+        client.server_info()
+    except pymongo.errors.ServerSelectionTimeoutError:
+        print(f'Could not connect to {db_address}')
+        exit(1)
+    db = client[db_name]
+    client.close()
+    return db
 
+
+def get_collection(db_address, db_name, collection_name):
+    db = get_db(db_address, db_name)
+    collection = db[collection_name]
+    return collection
