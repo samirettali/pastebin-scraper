@@ -30,6 +30,11 @@ def get_retry_session(
     return session
 
 
+def ping_healthchecks(url):
+    session = get_retry_session(retries=10)
+    session.get(url)
+
+
 def get_db(db_address, db_name):
     try:
         client = pymongo.MongoClient(db_address)

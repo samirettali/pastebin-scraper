@@ -86,8 +86,10 @@ def main():
     db_address = os.environ['DB_ADDRESS']
     db_name = os.environ['DB_NAME']
     col_name = os.environ['COL_NAME']
+    healtcheck_url = os.environ['HEALTHCHECK']
     crawler = PastebinCrawler(db_address, db_name, col_name)
     crawler.scrape()
+    utils.ping_healthchecks(healtcheck_url)
 
 
 if __name__ == '__main__':
