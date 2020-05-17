@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  mongo:
+    image: mongo
+    restart: always
+    ports:
+      - 127.0.0.1:27017:27017
+
+  pastebin-scraper:
+    image: pastebin-scraper
+    restart: always
+    depends_on:
+      - mongo
+    environment:
+      - MONGO_URI=${MONGO_URI}
+      - MONGO_DB=${MONGO_DB}
+      - MONGO_COL=${MONGO_COL}
+      - HEALTHCHECK=${HEALTHCHECK}

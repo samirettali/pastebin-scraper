@@ -1,8 +1,0 @@
-#Regex                                                                  File to log urls        Directory to save pastes
-m3u,                                                                    iptv.txt,               other
-(password\b|pass\b|pswd\b|passwd\b|pwd\b|pass\b,credentials,creds),     passwords.txt,          passwords
-(serial|cd-key|key\b|license),                                          serials.txt,            serials
-(hack|exploit|leak|usernames|account),                                  other.txt,              other
-id=,                                                                    sql_inject.txt,         sql_inject
-(gmail|yahoo|aol|outlook|hotmail|icloud|protonmail),                    mail_addresses.txt,     mail
-[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?,           mail_addresses.txt,      mail
