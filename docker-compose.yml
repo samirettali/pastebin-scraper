@@ -3,13 +3,15 @@ version: '3'
 services:
   mongo:
     image: mongo
-    restart: always
+    restart: unless-stopped
     ports:
       - 127.0.0.1:27017:27017
+    volumes:
+        - ./mongo-volume:/data/db
 
   scraper:
     image: samirettali/pastebin-scraper
-    restart: always
+    restart: unless-stopped
     depends_on:
       - mongo
     environment:
