@@ -105,9 +105,7 @@ func (scraper *PastebinScraper) Start() error {
 		return err
 	}
 
-	healthcheck := &Healthcheck{
-		URL: os.Getenv("HEALTHCHECK"),
-	}
+	healthcheck := NewHealthcheck(os.Getenv("HEALTHCHECK"))
 
 	// Goroutine that starts the scraping and pings healthcheck once a minute
 	go func() {
