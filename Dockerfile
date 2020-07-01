@@ -23,7 +23,7 @@ COPY . .
 RUN go build .
 
 # Use scratch image to run
-FROM scratch AS bin
+FROM ubuntu AS bin
 
 # Move to /app directory as the place for resulting binary folder
 WORKDIR /app

@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -27,8 +26,24 @@ type Paste struct {
 type PastebinScraper struct {
 	concurrency int
 	storage     Storage
-	msgChan     chan string
-	errChan     chan error
+	logger      *log.Logger
+	healthcheck *Healthcheck
+}
+
+func NewScraper(concurrency int, storage Storage, logger *log.Logger) (*PastebinScraper, error) {
+	err := storage.Init()
+	if err != nil {
+		return nil, err
+	}
+
+	healthcheck := NewHealthcheck(os.Getenv("HEALTHCHECK"))
+
+	return &PastebinScraper{
+		concurrency,
+		storage,
+		logger,
+		healthcheck,
+	}, nil
 }
 
 // Storage is an interface that defines storage methods
@@ -60,82 +75,68 @@ func (scraper *PastebinScraper) handlePaste(paste Paste, sem chan bool, wg *sync
 	}()
 	saved, err := scraper.storage.IsSaved(paste.Key)
 	if err != nil {
-		scraper.errChan <- err
+		scraper.logger.Error(err)
+		scraper.healthcheck.Fail(err.Error())
 		return
 	}
 	if !saved {
 		url := "https://scrape.pastebin.com/api_scrape_item.php?i=" + paste.Key
 		pasteContent, err := makeRequest(url)
 		if err != nil {
-			scraper.errChan <- err
+			scraper.logger.Error(err)
+			scraper.healthcheck.Fail(err.Error())
 			return
 		}
 		paste.Content = string(pasteContent)
 		err = scraper.storage.Save(paste)
 		if err != nil {
-			scraper.errChan <- err
+			scraper.logger.Error(err)
+			scraper.healthcheck.Fail(err.Error())
 			return
 		}
-		scraper.msgChan <- fmt.Sprintf("Saved %s", paste.Key)
+		scraper.logger.Infof("Saved %s", paste.Key)
 	}
 }
 
-func (scraper *PastebinScraper) scrape() {
+func (scraper *PastebinScraper) scrape() error {
 	wg := sync.WaitGroup{}
 	sem := make(chan bool, scraper.concurrency)
 	pastes, err := scraper.getPastes()
 	if err != nil {
-		scraper.errChan <- err
-		return
+		return err
 	}
 	for _, paste := range pastes {
 		wg.Add(1)
 		go scraper.handlePaste(paste, sem, &wg)
 	}
 	wg.Wait()
+	return nil
 }
 
 // Start starts the scraping process
 func (scraper *PastebinScraper) Start() error {
-	scraper.msgChan = make(chan string, scraper.concurrency)
-	scraper.errChan = make(chan error, scraper.concurrency)
-
-	err := scraper.storage.Init()
-	if err != nil {
-		return err
-	}
-
-	healthcheck := NewHealthcheck(os.Getenv("HEALTHCHECK"))
 
 	// Goroutine that starts the scraping and pings healthcheck once a minute
-	go func() {
-		ticker := time.NewTicker(1 * time.Minute)
-		for {
-			scraper.msgChan <- "Waiting for timer"
-			<-ticker.C
-			err := healthcheck.Start()
-			if err != nil {
-				scraper.errChan <- err
-				return
-			}
-			scraper.msgChan <- "Started scraper"
-			scraper.scrape()
-			scraper.msgChan <- "Scraper ended"
-			err = healthcheck.Success()
-			if err != nil {
-				scraper.errChan <- err
-				return
-			}
-		}
-	}()
-
+	ticker := time.NewTicker(1 * time.Minute)
 	for {
-		select {
-		case msg := <-scraper.msgChan:
-			log.Info(msg)
-		case err := <-scraper.errChan:
-			log.Error(err)
-			healthcheck.Fail(err.Error())
+		scraper.logger.Info("Waiting for timer")
+		<-ticker.C
+		err := scraper.healthcheck.Start()
+		if err != nil {
+			scraper.logger.Error(err)
+			return err
+		}
+		scraper.logger.Info("Started scraper")
+		err = scraper.scrape()
+		if err != nil {
+			scraper.healthcheck.Fail(err.Error())
+			scraper.logger.Error(err)
+			return err
+		}
+		scraper.logger.Info("Scraper ended")
+		err = scraper.healthcheck.Success()
+		if err != nil {
+			scraper.logger.Error(err)
 			return err
 		}
 	}

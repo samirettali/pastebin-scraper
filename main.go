@@ -21,13 +21,17 @@ func main() {
 		Collection: mongoCollection,
 	}
 
-	scraper := &PastebinScraper{
-		concurrency: 8,
-		storage:     storage,
+	logger := log.New()
+	logger.SetReportCaller(true)
+
+	scraper, err := NewScraper(8, storage, logger)
+
+	if err != nil {
+		logger.Fatal(err)
 	}
 
-	err := scraper.Start()
+	err = scraper.Start()
 	if err != nil {
-		log.Error(err)
+		log.Fatal(err)
 	}
 }
