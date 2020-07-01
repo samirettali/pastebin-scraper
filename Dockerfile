@@ -1,4 +1,4 @@
-FROM golang:alpine
+FROM golang:alpine AS build
 
 RUN apk add --no-cache git
 
@@ -11,19 +11,25 @@ ENV GO111MODULE=on \
 # Move to working directory /build
 WORKDIR /build
 
+# Download dependencies
+COPY go.mod .
+COPY go.sum .
+RUN go mod download
+
 # Copy the code into the container
 COPY . .
 
-# Download dependencies
-RUN go get ./...
-
+# Build
 RUN go build .
 
-# Move to /dist directory as the place for resulting binary folder
-WORKDIR /dist
+# Use scratch image to run
+FROM scratch AS bin
+
+# Move to /app directory as the place for resulting binary folder
+WORKDIR /app
 
 # Copy binary from build to main folder
-RUN cp /build/pastebin-scraper .
+COPY --from=build /build/pastebin-scraper .
 
 # Command to run when starting the container
-CMD ["/dist/pastebin-scraper"]
+CMD ["/app/pastebin-scraper"]
