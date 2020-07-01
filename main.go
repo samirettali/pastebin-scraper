@@ -1,8 +1,9 @@
 package main
 
 import (
-	log "github.com/sirupsen/logrus"
 	"os"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -14,24 +15,18 @@ func main() {
 		log.Fatal("You must set environment variables")
 	}
 
-	log.SetLevel(log.DebugLevel)
-
-	log.Debugf("MONGO_URI: %s", mongoURI)
-	log.Debugf("MONGO_DB: %s", mongoDatabase)
-	log.Debugf("MONGO_COL: %s", mongoCollection)
-
 	storage := &MongoStorage{
 		URI:        mongoURI,
 		Database:   mongoDatabase,
 		Collection: mongoCollection,
 	}
 
-	crawler := &PastebinScraper{
+	scraper := &PastebinScraper{
 		concurrency: 8,
 		storage:     storage,
 	}
 
-	err := crawler.Start()
+	err := scraper.Start()
 	if err != nil {
 		log.Error(err)
 	}

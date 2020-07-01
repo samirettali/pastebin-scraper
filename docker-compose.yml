@@ -7,8 +7,8 @@ services:
     ports:
       - 127.0.0.1:27017:27017
 
-  pastebin-scraper:
-    image: pastebin-scraper
+  scraper:
+    image: samirettali/pastebin-scraper
     restart: always
     depends_on:
       - mongo
