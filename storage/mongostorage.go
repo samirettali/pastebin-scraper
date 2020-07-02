@@ -1,4 +1,4 @@
-package main
+package storage
 
 import (
 	"container/list"
@@ -8,6 +8,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	pb "github.com/samirettali/go-pastebin"
 )
 
 // MongoStorage is an implementation of the Storage interface
@@ -42,7 +44,7 @@ func (s *MongoStorage) IsSaved(key string) (bool, error) {
 	if s.isInCache(key) {
 		return true, nil
 	}
-	paste := Paste{}
+	paste := pb.Paste{}
 	filter := &bson.M{
 		"key": key,
 	}
@@ -57,10 +59,13 @@ func (s *MongoStorage) IsSaved(key string) (bool, error) {
 }
 
 // Save saves a paste
-func (s *MongoStorage) Save(paste Paste) error {
-	s.addToCache(paste.Key)
+func (s *MongoStorage) Save(paste pb.Paste) error {
 	_, err := s.col.InsertOne(context.Background(), paste)
-	return err
+	if err != nil {
+		return err
+	}
+	s.addToCache(paste.Key)
+	return nil
 }
 
 func (s *MongoStorage) addToCache(key string) {

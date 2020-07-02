@@ -23,7 +23,10 @@ COPY . .
 RUN go build .
 
 # Use scratch image to run
-FROM ubuntu AS bin
+FROM alpine AS bin
+
+# Install curl to get certificates (temporary fix)
+RUN apk --no-cache add --update curl
 
 # Move to /app directory as the place for resulting binary folder
 WORKDIR /app

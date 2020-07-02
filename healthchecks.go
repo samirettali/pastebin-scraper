@@ -24,6 +24,8 @@ func NewHealthcheck(URL string) *Healthcheck {
 		Timeout:   10 * time.Second,
 	}
 
+	client.Head("google.com")
+
 	return &Healthcheck{
 		URL,
 		client,
