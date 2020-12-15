@@ -3,6 +3,7 @@ package storage
 import (
 	"container/list"
 	"context"
+	"fmt"
 	"sync"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -28,10 +29,10 @@ func (s *MongoStorage) Init() error {
 	var err error
 	client, err := mongo.NewClient(options.Client().ApplyURI(s.URI))
 	if err != nil {
-		return err
+		return fmt.Errorf("Could not create the client: %w", err)
 	}
 	if err = client.Connect(context.Background()); err != nil {
-		return err
+		return fmt.Errorf("Could not connect to the DB: %w", err)
 	}
 	db := client.Database(s.Database)
 	s.col = db.Collection(s.Collection)
@@ -44,17 +45,20 @@ func (s *MongoStorage) IsSaved(key string) (bool, error) {
 	if s.isInCache(key) {
 		return true, nil
 	}
+
 	paste := pb.Paste{}
 	filter := &bson.M{
 		"key": key,
 	}
+
 	err := s.col.FindOne(context.Background(), filter).Decode(&paste)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return false, nil
 		}
-		return false, err
+		return false, fmt.Errorf("Could not search for paste: %w", err)
 	}
+
 	return true, nil
 }
 
@@ -62,7 +66,7 @@ func (s *MongoStorage) IsSaved(key string) (bool, error) {
 func (s *MongoStorage) Save(paste pb.Paste) error {
 	_, err := s.col.InsertOne(context.Background(), paste)
 	if err != nil {
-		return err
+		return fmt.Errorf("Could not save the paste: %w", err)
 	}
 	s.addToCache(paste.Key)
 	return nil
