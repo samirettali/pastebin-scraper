@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 
+	"github.com/joho/godotenv"
+	"github.com/kelseyhightower/envconfig"
 	healthcheck "github.com/samirettali/go-healthchecks"
 	"github.com/samirettali/pastebin-scraper/scraper"
 	"github.com/samirettali/pastebin-scraper/storage"
@@ -10,38 +12,54 @@ import (
 )
 
 func main() {
-	// mongoURI := os.Getenv("MONGO_URI")
-	// mongoDatabase := os.Getenv("MONGO_DB")
-	// mongoCollection := os.Getenv("MONGO_COL")
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+	storageType, found := os.LookupEnv("STORAGE_TYPE")
 
-	// if mongoURI == "" || mongoDatabase == "" || mongoCollection == "" {
-	// 	log.Fatal("You must set MongoDB environment variables")
-	// }
+	if !found {
+		log.Fatal("You have to set STORAGE_TYPE env variable")
+	}
+
+	var store scraper.Storage
+
+	switch storageType {
+	case "mongo":
+		var c storage.MongoConfig
+		err := envconfig.Process("mongo", &c)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+		store = &storage.MongoStorage{
+			Config: &c,
+		}
+	case "postgres":
+		var c storage.PgConfig
+		err := envconfig.Process("postgres", &c)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+		store = &storage.PgStorage{
+			Config: &c,
+		}
+
+	default:
+		log.Fatal("You have to set STORAGE_TYPE env variable")
+	}
 
 	healthcheckURL := os.Getenv("HEALTHCHECK")
 
 	if healthcheckURL == "" {
-		log.Fatal("You must set HEALTHCHECK environment variable")
+		log.Fatal("You must set a valid HEALTHCHECK environment variable")
 	}
 
 	logger := log.New()
 	logger.SetReportCaller(true)
 
-	// storage := &storage.MongoStorage{
-	// 	URI:        mongoURI,
-	// 	Database:   mongoDatabase,
-	// 	Collection: mongoCollection,
-	// }
-
-	storage := &storage.PgStorage{
-		// URI:        mongoURI,
-		// Database:   mongoDatabase,
-		// Collection: mongoCollection,
-	}
-
 	healthcheck := healthcheck.NewHealthcheck(healthcheckURL)
 
-	scraper, err := scraper.NewScraper(8, storage, healthcheck, logger)
+	scraper, err := scraper.NewScraper(8, store, healthcheck, logger)
 	if err != nil {
 		logger.Fatal(err)
 	}

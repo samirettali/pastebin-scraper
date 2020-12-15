@@ -5,18 +5,26 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	pb "github.com/samirettali/go-pastebin"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
+type PgConfig struct {
+	Host     string `required:"true"`
+	Port     string `required:"true"`
+	User     string `required:"true"`
+	DBName   string `required:"true"`
+	Password string `required:"true"`
+}
+
 // PgStorage is an implementation of the Storage interface
 type PgStorage struct {
-	// URI      string
-	// Database string
-	// Table    string
+	Config *PgConfig
 
 	db    *gorm.DB
 	mutex sync.Mutex
@@ -26,7 +34,8 @@ type PgStorage struct {
 // Init initializes the collection pointer
 func (s *PgStorage) Init() error {
 	var err error
-	db, err := gorm.Open("postgres", "host=localhost port=5432 user=postgres dbname=pastebin sslmode=disable password=postgres")
+	dsn := fmt.Sprintf("host=%s port=%s user=%s dbname=%s sslmode=disable password=%s", s.Config.Host, s.Config.Port, s.Config.User, s.Config.DBName, s.Config.Password)
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Error)})
 	if err != nil {
 		return err
 	}
@@ -76,8 +85,4 @@ func (s *PgStorage) isInCache(key string) bool {
 		}
 	}
 	return false
-}
-
-func (s *PgStorage) exit() error {
-	return s.db.Close()
 }

@@ -13,11 +13,15 @@ import (
 	pb "github.com/samirettali/go-pastebin"
 )
 
+type MongoConfig struct {
+	URI        string `required:"true"`
+	Database   string `required:"true"`
+	Collection string `required:"true"`
+}
+
 // MongoStorage is an implementation of the Storage interface
 type MongoStorage struct {
-	URI        string
-	Database   string
-	Collection string
+	Config *MongoConfig
 
 	col   *mongo.Collection
 	mutex sync.Mutex
@@ -27,15 +31,15 @@ type MongoStorage struct {
 // Init initializes the collection pointer
 func (s *MongoStorage) Init() error {
 	var err error
-	client, err := mongo.NewClient(options.Client().ApplyURI(s.URI))
+	client, err := mongo.NewClient(options.Client().ApplyURI(s.Config.URI))
 	if err != nil {
 		return fmt.Errorf("Could not create the client: %w", err)
 	}
 	if err = client.Connect(context.Background()); err != nil {
 		return fmt.Errorf("Could not connect to the DB: %w", err)
 	}
-	db := client.Database(s.Database)
-	s.col = db.Collection(s.Collection)
+	db := client.Database(s.Config.Database)
+	s.col = db.Collection(s.Config.Collection)
 	s.cache = list.New()
 	return nil
 }
