@@ -42,67 +42,84 @@ type Storage interface {
 	Save(pb.Paste) error
 }
 
-func (scraper *PastebinScraper) handlePaste(paste pb.Paste, wg *sync.WaitGroup) {
-	scraper.sem <- struct{}{}
+func (s *PastebinScraper) handlePaste(paste pb.Paste, errChan chan error, wg *sync.WaitGroup) {
+	s.sem <- struct{}{}
 	defer func() {
-		<-scraper.sem
+		<-s.sem
 		wg.Done()
 	}()
-	saved, err := scraper.storage.IsSaved(paste.Key)
+
+	saved, err := s.storage.IsSaved(paste.Key)
+
 	if err != nil {
-		scraper.logger.Error(err)
+		errChan <- err
 		return
 	}
+
 	if !saved {
-		pasteContent, err := scraper.api.GetPaste(paste.Key)
+		pasteContent, err := s.api.GetPaste(paste.Key)
 		if err != nil {
-			scraper.logger.Error(err)
+			errChan <- err
 			return
 		}
 		paste.Content = string(pasteContent)
-		err = scraper.storage.Save(paste)
+		err = s.storage.Save(paste)
 		if err != nil {
-			scraper.logger.Error(err)
+			errChan <- err
 			return
 		}
-		scraper.logger.Infof("Saved %s", paste.Key)
+		s.logger.Debugf("Saved %s", paste.Key)
 	}
 }
 
-func (scraper *PastebinScraper) scrape() error {
-	scraper.logger.Info("Started scraper")
-	wg := sync.WaitGroup{}
-	pastes, err := scraper.api.LatestPastes()
+func (s *PastebinScraper) scrape() error {
+	s.logger.Info("Started scraper")
+
+	pastes, err := s.api.LatestPastes()
 	if err != nil {
 		return err
 	}
+
+	var wg sync.WaitGroup
+	errChan := make(chan error)
+	done := make(chan struct{})
+
 	for _, paste := range pastes {
 		wg.Add(1)
-		go scraper.handlePaste(paste, &wg)
+		go s.handlePaste(paste, errChan, &wg)
 	}
-	wg.Wait()
-	scraper.logger.Info("Ended scraper")
-	return nil
+
+	go func() {
+		wg.Wait()
+		done <- struct{}{}
+	}()
+
+	select {
+	case <-done:
+		s.logger.Info("Ended scraper")
+		return nil
+	case err := <-errChan:
+		return err
+	}
 }
 
-// Start starts the scraping process
-func (scraper *PastebinScraper) Start() error {
-	// Goroutine that starts the scraping and pings healthcheck once a minute
+// Start starts the scraping process and pings the Healthcheck endpoint.
+func (s *PastebinScraper) Start() error {
 	ticker := time.NewTicker(1 * time.Minute)
 	for {
-		scraper.logger.Info("Waiting for timer")
+		s.logger.Info("Waiting for timer")
 		<-ticker.C
 
-		if err := scraper.healthcheck.Start(); err != nil {
+		if err := s.healthcheck.Start(); err != nil {
 			return err
 		}
 
-		if err := scraper.scrape(); err != nil {
-			scraper.healthcheck.Fail(err.Error())
+		if err := s.scrape(); err != nil {
+			s.healthcheck.Fail(err.Error())
 			return err
 		}
 
-		if err := scraper.healthcheck.Success(); err != nil {
+		if err := s.healthcheck.Success(); err != nil {
 			return err
 		}
 	}
