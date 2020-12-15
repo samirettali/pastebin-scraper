@@ -10,13 +10,13 @@ import (
 )
 
 func main() {
-	mongoURI := os.Getenv("MONGO_URI")
-	mongoDatabase := os.Getenv("MONGO_DB")
-	mongoCollection := os.Getenv("MONGO_COL")
+	// mongoURI := os.Getenv("MONGO_URI")
+	// mongoDatabase := os.Getenv("MONGO_DB")
+	// mongoCollection := os.Getenv("MONGO_COL")
 
-	if mongoURI == "" || mongoDatabase == "" || mongoCollection == "" {
-		log.Fatal("You must set MongoDB environment variables")
-	}
+	// if mongoURI == "" || mongoDatabase == "" || mongoCollection == "" {
+	// 	log.Fatal("You must set MongoDB environment variables")
+	// }
 
 	healthcheckURL := os.Getenv("HEALTHCHECK")
 
@@ -27,10 +27,16 @@ func main() {
 	logger := log.New()
 	logger.SetReportCaller(true)
 
-	storage := &storage.MongoStorage{
-		URI:        mongoURI,
-		Database:   mongoDatabase,
-		Collection: mongoCollection,
+	// storage := &storage.MongoStorage{
+	// 	URI:        mongoURI,
+	// 	Database:   mongoDatabase,
+	// 	Collection: mongoCollection,
+	// }
+
+	storage := &storage.PgStorage{
+		// URI:        mongoURI,
+		// Database:   mongoDatabase,
+		// Collection: mongoCollection,
 	}
 
 	healthcheck := healthcheck.NewHealthcheck(healthcheckURL)
