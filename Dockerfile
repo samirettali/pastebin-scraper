@@ -7,6 +7,8 @@ ENV GO111MODULE=on \
     CGO_ENABLED=0 \
     GOOS=linux \
     GOARCH=amd64
+    # GOARCH=arm \ # Uncomment these lines to build for arm
+    # GOARM=7
 
 # Move to working directory /build
 WORKDIR /build
