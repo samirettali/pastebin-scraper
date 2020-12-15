@@ -3,8 +3,13 @@ module github.com/samirettali/pastebin-scraper
 go 1.14
 
 require (
+	github.com/gorilla/mux v1.8.0 // indirect
+	github.com/jinzhu/gorm v1.9.16
+	github.com/kelseyhightower/envconfig v1.4.0 // indirect
 	github.com/klauspost/compress v1.10.10 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
+	github.com/lib/pq v1.9.0 // indirect
+	github.com/pkg/errors v0.9.1
+	github.com/rs/cors v1.7.0 // indirect
 	github.com/samirettali/go-healthchecks v0.0.0-20200701221454-34389507f30f
 	github.com/samirettali/go-pastebin v0.0.0-20200701101751-9dfdf2d80e2c
 	github.com/sirupsen/logrus v1.6.0
@@ -13,4 +18,6 @@ require (
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208 // indirect
 	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae // indirect
 	golang.org/x/text v0.3.3 // indirect
+	gorm.io/driver/postgres v1.0.5
+	gorm.io/gorm v1.20.8
 )

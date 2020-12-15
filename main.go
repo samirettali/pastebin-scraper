@@ -3,7 +3,6 @@ package main
 import (
 	"os"
 
-	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
 	healthcheck "github.com/samirettali/go-healthchecks"
 	"github.com/samirettali/pastebin-scraper/scraper"
@@ -12,10 +11,6 @@ import (
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
 	storageType, found := os.LookupEnv("STORAGE_TYPE")
 
 	if !found {
