@@ -1,6 +1,8 @@
 package scraper
 
 import (
+	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -16,6 +18,8 @@ type PastebinScraper struct {
 	healthcheck *healthcheck.Healthcheck
 	sem         chan struct{}
 	api         *pb.Client
+	slowWg      *sync.WaitGroup
+	slowChan    chan struct{}
 }
 
 func NewScraper(concurrency int, storage Storage, hc *healthcheck.Healthcheck, logger *log.Logger) (*PastebinScraper, error) {
@@ -30,6 +34,8 @@ func NewScraper(concurrency int, storage Storage, hc *healthcheck.Healthcheck, l
 		healthcheck: hc,
 		sem:         make(chan struct{}, concurrency),
 		api:         pb.NewClient(),
+		slowChan:    make(chan struct{}, 1),
+		slowWg:      &sync.WaitGroup{},
 	}
 
 	return scraper, nil
@@ -49,6 +55,8 @@ func (s *PastebinScraper) handlePaste(paste pb.Paste, errChan chan error, wg *sy
 		wg.Done()
 	}()
 
+	s.slowWg.Wait()
+
 	saved, err := s.storage.IsSaved(paste.Key)
 
 	if err != nil {
@@ -57,11 +65,22 @@ func (s *PastebinScraper) handlePaste(paste pb.Paste, errChan chan error, wg *sy
 	}
 
 	if !saved {
-		pasteContent, err := s.api.GetPaste(paste.Key)
+		pasteContent, slowDown, err := s.api.GetPaste(&paste)
 		if err != nil {
 			errChan <- err
 			return
 		}
+
+		if slowDown {
+			select {
+			case s.slowChan <- struct{}{}:
+				errChan <- errors.New(fmt.Sprintf("Slowing down, got: %s", pasteContent))
+			default:
+				s.logger.Warn("slowChan channel full")
+			}
+			return
+		}
+
 		paste.Content = string(pasteContent)
 		err = s.storage.Save(paste)
 		if err != nil {
@@ -100,15 +119,20 @@ func (s *PastebinScraper) scrape() error {
 		return nil
 	case err := <-errChan:
 		return err
+	case <-s.slowChan:
+		s.slowWg.Add(1)
+		s.logger.Warn("Got 429, slowing down")
+		time.Sleep(2 * time.Minute)
+		s.slowWg.Done()
+		return err
 	}
 }
 
 // Start starts the scraping process and pings the Healthcheck endpoint.
 func (s *PastebinScraper) Start() error {
-	ticker := time.NewTicker(1 * time.Minute)
-	for {
-		s.logger.Info("Waiting for timer")
-		<-ticker.C
+	ticker := time.NewTicker(3 * time.Minute)
+	defer ticker.Stop()
+	for ; true; <-ticker.C {
 
 		if err := s.healthcheck.Start(); err != nil {
 			return err
@@ -122,5 +146,7 @@ func (s *PastebinScraper) Start() error {
 		if err := s.healthcheck.Success(); err != nil {
 			return err
 		}
+		s.logger.Info("Waiting for timer")
 	}
+	return nil
 }

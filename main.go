@@ -54,7 +54,7 @@ func main() {
 
 	healthcheck := healthcheck.NewHealthcheck(healthcheckURL)
 
-	scraper, err := scraper.NewScraper(8, store, healthcheck, logger)
+	scraper, err := scraper.NewScraper(1, store, healthcheck, logger)
 	if err != nil {
 		logger.Fatal(err)
 	}
