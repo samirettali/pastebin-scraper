@@ -28,7 +28,7 @@ You can pull a docker image built for `x86` from docker hub:
 $ docker pull samirettali/pastebin-scraper
 ```
 
-Or if you are running it on another architecture (arm for example):
+Or if you are running it on another architecture (`arm` for example):
 ```
 $ git clone github.com/samirettali/pastebin-scraper
 $ cd pastebin-scraper
